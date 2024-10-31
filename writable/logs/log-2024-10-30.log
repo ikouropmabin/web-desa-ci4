@@ -1,0 +1,4 @@
+CRITICAL - 2024-10-30 16:11:31 --> ErrorException: Namespace declaration statement has to be the very first statement or after any declare call in the script
+[Method: GET, Route: Berita]
+in APPPATH\Controllers\Berita.php on line 4.
+ 1 [internal function]: CodeIgniter\Debug\Exceptions->shutdownHandler()

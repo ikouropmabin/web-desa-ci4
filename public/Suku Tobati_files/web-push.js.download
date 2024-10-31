@@ -1,0 +1,184 @@
+
+var ip_address = '';
+var city = '';
+
+$(function () {
+
+    ipinfo().then(function(dt) {
+        ip_address = dt.ip;
+        city = dt.city;
+        // Lakukan apapun yang perlu dilakukan setelah mendapatkan data
+    }).catch(function(error) {
+        console.error('Error:', error);
+        // Lakukan apapun yang perlu dilakukan jika terjadi kesalahan
+    });
+
+});
+
+function detectBrowser(userAgent) {
+    if (/MSIE/i.test(userAgent) && !/Opera/i.test(userAgent)) {
+        return 'Internet Explorer';
+    } else if (/Firefox/i.test(userAgent)) {
+        return 'Mozilla Firefox';
+    } else if (/Chrome/i.test(userAgent) && !/Edge/i.test(userAgent)) {
+        return 'Google Chrome';
+    } else if (/Safari/i.test(userAgent) && !/Edge/i.test(userAgent)) {
+        return 'Apple Safari';
+    } else if (/Edge/i.test(userAgent)) {
+        return 'Microsoft Edge';
+    } else if (/Opera/i.test(userAgent)) {
+        return 'Opera';
+    } else {
+        return 'Unknown Browser';
+    }
+}
+
+// Contoh penggunaan
+var userAgent = navigator.userAgent;
+var browser = detectBrowser(userAgent);
+
+function detectDeviceType(userAgent) {
+    // Pola yang umumnya terdapat dalam string user-agent perangkat mobile
+    var mobilePatterns = [
+        /Android/i,
+        /webOS/i,
+        /iPhone/i,
+        /iPad/i,
+        /iPod/i,
+        /BlackBerry/i,
+        /Windows Phone/i
+    ];
+
+    // Memeriksa apakah string user-agent mengandung salah satu pola perangkat mobile
+    for (var i = 0; i < mobilePatterns.length; i++) {
+        if (mobilePatterns[i].test(userAgent)) {
+            return 'Mobile';
+        }
+    }
+
+    // Jika tidak terdeteksi sebagai perangkat mobile, diasumsikan sebagai desktop
+    return 'Desktop';
+}
+
+// Contoh penggunaan
+var userAgent = navigator.userAgent;
+var deviceType = detectDeviceType(userAgent);
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }).catch(function(err) {
+            console.error('ServiceWorker registration failed: ', err);
+        });
+    });
+}
+
+
+Notification.requestPermission().then(function (permission) {
+    if (permission === 'granted') {
+      console.log('Izin notifikasi diberikan.');
+      startFCM();
+    } else {
+      console.log('Izin notifikasi ditolak.');
+    }
+});
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+var firebaseConfig = {
+    apiKey: "AIzaSyAgb0kA7nN-PmZeKpb_Ki0R3j8sXeqdahs",
+    authDomain: "push-web-9675b.firebaseapp.com",
+    projectId: "push-web-9675b",
+    storageBucket: "push-web-9675b.appspot.com",
+    messagingSenderId: "77085475743",
+    appId: "1:77085475743:web:e1ff83b76a753dc64173aa",
+    measurementId: "G-7VWMZGZPJP"
+};
+
+
+    firebase.initializeApp(firebaseConfig);
+
+    const messaging = firebase.messaging();
+
+    function startFCM() {
+        messaging
+            .requestPermission()
+            .then(function () {
+                return messaging.getToken()
+            })
+            .then(function (response) {
+                
+                console.log(response);
+
+                axios.post(window.location.origin + '/ShareToken', {
+                    token: response,
+                    ip_address : ip_address,
+                    browser : browser,
+                    jenis : deviceType,
+                    daerah : city,
+                    domain : 'p2k.stekom.ac.id',
+                })
+                .then(function (response) {
+                    console.log(response);
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+            })
+            .catch(function (error) {
+                    console.log(error);
+            });
+    }
+    messaging.onMessage(function (payload) {
+
+        console.log(payload.notification);
+    
+        const { title, body, icon, image, click_action } = payload.notification;
+        const options = {
+            body: body,
+            icon: icon,
+            image: image,
+            requireInteraction:true
+        };
+        const notification = new Notification(title, options);
+    
+        notification.onclick = function(event) {
+            event.preventDefault(); // Menghentikan default action dari browser
+            if (click_action) {
+            // Menutup pemberitahuan setelah aksi diklik
+            notification.close();
+                window.open(click_action, '_blank'); // Membuka link yang ditentukan pada pemberitahuan dalam tab baru
+            }
+            
+            // Menutup pemberitahuan setelah aksi diklik
+           // notification.close();
+        };
+    
+    
+    });
+
+    function ipinfo() {
+        return axios.get('https://ipinfo.io/json')
+            .then(function(response) {
+                var data = response.data;
+                
+                if (data) {
+                    var hasil = {
+                        status: true,
+                        ip: data.ip,
+                        city: data.city,
+                        country: data.country
+                    };
+                    return hasil;
+                } else {
+                    throw new Error('Tidak ada data yang diterima dari server');
+                }
+            })
+            .catch(function(error) {     
+                console.error('Error:', error);
+                throw error; // Melemparkan kembali error untuk menangani di luar fungsi ipinfo
+            });
+    }
+
+    
